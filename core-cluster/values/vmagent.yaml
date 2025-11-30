@@ -13,8 +13,8 @@ resources:
     memory: 512Mi
 
 # Remote write to Victoria Metrics Single
-remoteWriteUrls:
-  - http://victoria-metrics-single-server.monitoring.svc:8428/api/v1/write
+remoteWrite:
+  - url: http://victoria-metrics-single-server.monitoring.svc:8428/api/v1/write
 
 # Extra args
 extraArgs:
