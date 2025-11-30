@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: alertmanager
+  name: vmalert
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -19,12 +19,13 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
   sources:
-    - repoURL: https://prometheus-community.github.io/helm-charts
-      chart: alertmanager
-      targetRevision: 1.14.*
+    - repoURL: https://victoriametrics.github.io/helm-charts/
+      chart: victoria-metrics-alert
+      targetRevision: 0.12.*
       helm:
         valueFiles:
-          - $values/core-cluster/values/alertmanager.yaml
+          - $values/core-cluster/values/vmalert.yaml
     - repoURL: https://github.com/iamtahmad1/monitoring.git
       targetRevision: HEAD
       ref: values
+

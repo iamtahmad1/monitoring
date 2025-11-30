@@ -5,7 +5,7 @@ resources:
   - namespace.yaml
   - applications/victoria-metrics-single.yaml
   - applications/vmagent.yaml
-  - applications/alertmanager.yaml
+  - applications/vmalert.yaml
   - applications/grafana.yaml
   - applications/prometheus.yaml
   - applications/kube-state-metrics.yaml

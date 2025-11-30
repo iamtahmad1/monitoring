@@ -60,10 +60,10 @@ datasources:
         access: proxy
         isDefault: false
       
-      # AlertManager data source
+      # VMAlertManager data source
       - name: AlertManager
         type: alertmanager
-        url: http://alertmanager.monitoring.svc:9093
+        url: http://vmalert-alertmanager.monitoring.svc:9093
         access: proxy
         jsonData:
           implementation: prometheus
