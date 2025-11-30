@@ -12,9 +12,9 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-# Remote write to Core Cluster Victoria Metrics
+# Remote write to Core Cluster Victoria Metrics (NodePort 30428)
 remoteWrite:
-  - url: http://192.168.1.220/api/v1/write
+  - url: http://192.168.1.170:30428/api/v1/write
 
 # Extra args - add external label for cluster identification
 extraArgs:

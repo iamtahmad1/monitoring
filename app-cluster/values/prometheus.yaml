@@ -30,11 +30,9 @@ server:
     external_labels:
       cluster: app-cluster
   
-  # Remote write to Core Cluster Victoria Metrics (192.168.1.220)
+  # Remote write to Core Cluster Victoria Metrics (NodePort 30428)
   remoteWrite:
-    - url: http://192.168.1.220/api/v1/write
-      headers:
-        Host: vm.dev.cluster.lan
+    - url: http://192.168.1.170:30428/api/v1/write
       queue_config:
         max_samples_per_send: 10000
         batch_send_deadline: 5s
