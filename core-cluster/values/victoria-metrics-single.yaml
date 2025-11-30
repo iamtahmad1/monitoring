@@ -30,12 +30,13 @@ server:
     type: ClusterIP
     servicePort: 8428
   
-  # Ingress (disabled by default, enable if needed)
+  # Ingress
   ingress:
-    enabled: false
-    # hosts:
-    #   - name: vm.example.com
-    #     path: /
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - name: vm.dev.cluster.lan
+        path: /
   
   # Scrape configs - VM can scrape directly but we'll use vmagent/prometheus
   scrape:

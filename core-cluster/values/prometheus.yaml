@@ -39,9 +39,12 @@ server:
   service:
     type: ClusterIP
   
-  # Ingress (disabled)
+  # Ingress
   ingress:
-    enabled: false
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - prometheus.dev.cluster.lan
 
 # AlertManager - disabled since we have separate AlertManager
 alertmanager:

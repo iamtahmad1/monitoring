@@ -27,15 +27,16 @@ service:
   type: ClusterIP
   port: 80
 
-# Ingress (disabled by default)
+# Ingress
 ingress:
-  enabled: false
-  # hosts:
-  #   - grafana.example.com
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - grafana.dev.cluster.lan
   # tls:
   #   - secretName: grafana-tls
   #     hosts:
-  #       - grafana.example.com
+  #       - grafana.dev.cluster.lan
 
 # Data sources
 datasources:

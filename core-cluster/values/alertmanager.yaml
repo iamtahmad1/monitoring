@@ -22,14 +22,15 @@ service:
   type: ClusterIP
   port: 9093
 
-# Ingress (disabled by default)
+# Ingress
 ingress:
-  enabled: false
-  # hosts:
-  #   - host: alertmanager.example.com
-  #     paths:
-  #       - path: /
-  #         pathType: Prefix
+  enabled: true
+  className: nginx
+  hosts:
+    - host: alertmanager.dev.cluster.lan
+      paths:
+        - path: /
+          pathType: Prefix
 
 # AlertManager configuration
 config:
