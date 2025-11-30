@@ -1,0 +1,168 @@
+# VMAgent - Scrapes metrics and sends to Core Cluster Victoria Metrics
+
+# Deployment configuration
+replicaCount: 1
+
+# Resource configuration
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Remote write to Core Cluster Victoria Metrics
+# UPDATE THIS URL to match your core cluster's VM endpoint
+remoteWrite:
+  - url: http://vm.dev.cluster.lan/api/v1/write
+
+# Extra args
+extraArgs:
+  envflag.enable: "true"
+  envflag.prefix: VM_
+  loggerFormat: json
+  promscrape.maxScrapeSize: "167772160"
+  promscrape.streamParse: "true"
+  # Add cluster label to distinguish metrics from this cluster
+  remoteWrite.label: cluster=app-cluster
+
+# Persistence for write-ahead log
+persistentVolume:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+
+# RBAC for service discovery
+rbac:
+  create: true
+  pspEnabled: false
+
+# ServiceAccount
+serviceAccount:
+  create: true
+
+# Config for Kubernetes service discovery
+config:
+  global:
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    # Add external labels to identify this cluster
+    external_labels:
+      cluster: app-cluster
+  
+  scrape_configs:
+    # Scrape VMAgent itself
+    - job_name: vmagent
+      static_configs:
+        - targets: ["localhost:8429"]
+    
+    # Kubernetes API Server
+    - job_name: kubernetes-apiservers
+      kubernetes_sd_configs:
+        - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+    
+    # Kubernetes Nodes
+    - job_name: kubernetes-nodes
+      kubernetes_sd_configs:
+        - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+    
+    # Kubernetes Nodes Cadvisor
+    - job_name: kubernetes-nodes-cadvisor
+      kubernetes_sd_configs:
+        - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __metrics_path__
+          replacement: /metrics/cadvisor
+    
+    # Kubernetes Service Endpoints
+    - job_name: kubernetes-service-endpoints
+      kubernetes_sd_configs:
+        - role: endpoints
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_service
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod
+    
+    # Kubernetes Pods
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod
+
+# ServiceMonitor (disabled - requires Prometheus Operator CRDs)
+serviceMonitor:
+  enabled: false
+

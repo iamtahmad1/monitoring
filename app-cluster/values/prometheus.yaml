@@ -1,0 +1,150 @@
+# Prometheus - Metrics scraping for App Cluster
+
+# Prometheus Server
+server:
+  enabled: true
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  
+  # Persistence
+  persistentVolume:
+    enabled: true
+    size: 30Gi
+  
+  # Retention (short - VMAgent sends to central VM)
+  retention: "7d"
+  
+  # Global config
+  global:
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    evaluation_interval: 30s
+    # External labels to identify this cluster
+    external_labels:
+      cluster: app-cluster
+  
+  # Remote write to Core Cluster Victoria Metrics
+  # UPDATE THIS URL to match your core cluster's VM endpoint
+  remoteWrite:
+    - url: http://vm.dev.cluster.lan/api/v1/write
+      queue_config:
+        max_samples_per_send: 10000
+        batch_send_deadline: 5s
+        capacity: 20000
+  
+  # Service
+  service:
+    type: ClusterIP
+  
+  # Ingress
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - prometheus.dev.cluster.lan
+
+# AlertManager - disabled (using core cluster's VMAlert)
+alertmanager:
+  enabled: false
+
+# Kube State Metrics - disabled (separate deployment)
+kube-state-metrics:
+  enabled: false
+
+# Prometheus Node Exporter - enable for node metrics
+prometheus-node-exporter:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 64Mi
+
+# Prometheus Pushgateway - optional
+prometheus-pushgateway:
+  enabled: false
+
+# ConfigMap reload
+configmapReload:
+  prometheus:
+    enabled: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 32Mi
+
+# Server files ConfigMap
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:9090
+      
+      - job_name: kubernetes-service-endpoints
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: service
+      
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+
