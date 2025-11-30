@@ -1,0 +1,25 @@
+---
+# Victoria Metrics NodePort Service for cross-cluster access
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoria-metrics-nodeport
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  source:
+    repoURL: https://github.com/iamtahmad1/monitoring.git
+    targetRevision: HEAD
+    path: core-cluster/extras
+
