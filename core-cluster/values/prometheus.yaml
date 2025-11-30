@@ -1,0 +1,206 @@
+# Prometheus - Metrics scraping
+
+# Prometheus Server
+server:
+  enabled: true
+  
+  # Resources
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  
+  # Persistence
+  persistentVolume:
+    enabled: true
+    size: 30Gi
+  
+  # Retention
+  retention: "15d"
+  
+  # Global config
+  global:
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    evaluation_interval: 30s
+  
+  # Remote write to Victoria Metrics
+  remoteWrite:
+    - url: http://victoria-metrics-single-server.monitoring.svc:8428/api/v1/write
+      queue_config:
+        max_samples_per_send: 10000
+        batch_send_deadline: 5s
+        capacity: 20000
+  
+  # Service
+  service:
+    type: ClusterIP
+  
+  # Ingress (disabled)
+  ingress:
+    enabled: false
+
+# AlertManager - disabled since we have separate AlertManager
+alertmanager:
+  enabled: false
+
+# Kube State Metrics - disabled since we have separate deployment
+kube-state-metrics:
+  enabled: false
+
+# Prometheus Node Exporter - enable for node metrics
+prometheus-node-exporter:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 64Mi
+
+# Prometheus Pushgateway - optional
+prometheus-pushgateway:
+  enabled: false
+
+# ConfigMap reload
+configmapReload:
+  prometheus:
+    enabled: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 32Mi
+
+# Server files ConfigMap
+serverFiles:
+  # AlertManager config reference
+  alerting_rules.yml:
+    groups:
+      - name: kubernetes-alerts
+        rules:
+          - alert: KubernetesPodNotReady
+            expr: kube_pod_status_phase{phase=~"Pending|Unknown|Failed"} > 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is not ready"
+              description: "Pod has been in non-ready state for more than 5 minutes."
+          
+          - alert: KubernetesNodeNotReady
+            expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Node {{ $labels.node }} is not ready"
+              description: "Node has been in non-ready state for more than 5 minutes."
+          
+          - alert: HighMemoryUsage
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage on {{ $labels.instance }}"
+              description: "Memory usage is above 85% (current: {{ $value | printf \"%.2f\" }}%)"
+          
+          - alert: HighCPUUsage
+            expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage on {{ $labels.instance }}"
+              description: "CPU usage is above 85% (current: {{ $value | printf \"%.2f\" }}%)"
+      
+      - name: victoria-metrics-alerts
+        rules:
+          - alert: VictoriaMetricsDown
+            expr: up{job="victoria-metrics-single-server"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Victoria Metrics is down"
+              description: "Victoria Metrics has been down for more than 1 minute."
+  
+  # Prometheus config
+  prometheus.yml:
+    rule_files:
+      - /etc/config/alerting_rules.yml
+    
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets:
+              - localhost:9090
+      
+      # ServiceMonitor-like scraping via annotations
+      - job_name: kubernetes-service-endpoints
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: service
+      
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+    
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - alertmanager.monitoring.svc:9093
+

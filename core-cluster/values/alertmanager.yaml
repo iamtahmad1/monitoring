@@ -1,0 +1,93 @@
+# AlertManager - Handles alerts from Victoria Metrics / Prometheus
+
+# Replica count
+replicaCount: 1
+
+# Resource configuration
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Persistence
+persistence:
+  enabled: true
+  size: 2Gi
+
+# Service
+service:
+  type: ClusterIP
+  port: 9093
+
+# Ingress (disabled by default)
+ingress:
+  enabled: false
+  # hosts:
+  #   - host: alertmanager.example.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+
+# AlertManager configuration
+config:
+  global:
+    resolve_timeout: 5m
+    # smtp_smarthost: 'smtp.example.com:587'
+    # smtp_from: 'alertmanager@example.com'
+    # smtp_auth_username: 'alertmanager'
+    # smtp_auth_password: 'password'
+  
+  # Inhibition rules
+  inhibit_rules:
+    - source_matchers:
+        - severity="critical"
+      target_matchers:
+        - severity="warning"
+      equal:
+        - alertname
+        - namespace
+  
+  # Routing tree
+  route:
+    group_by: ['alertname', 'namespace', 'severity']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 12h
+    receiver: 'default-receiver'
+    routes:
+      - receiver: 'critical-receiver'
+        matchers:
+          - severity="critical"
+        continue: true
+      - receiver: 'warning-receiver'
+        matchers:
+          - severity="warning"
+  
+  # Receivers
+  receivers:
+    - name: 'default-receiver'
+      # Configure your receivers here
+      # webhook_configs:
+      #   - url: 'http://alerthandler:8080/alerts'
+    
+    - name: 'critical-receiver'
+      # Configure critical alerts receiver
+      # pagerduty_configs:
+      #   - service_key: '<key>'
+    
+    - name: 'warning-receiver'
+      # Configure warning alerts receiver
+  
+  # Templates
+  templates:
+    - '/etc/alertmanager/*.tmpl'
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  additionalLabels:
+    release: prometheus
+

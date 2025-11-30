@@ -1,0 +1,49 @@
+# Victoria Metrics Single - Time Series Database
+server:
+  # Resource configuration
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  
+  # Storage configuration
+  persistentVolume:
+    enabled: true
+    size: 50Gi
+    storageClass: ""  # Use default storage class
+  
+  # Retention period
+  retentionPeriod: 30d
+  
+  # Extra args for VM
+  extraArgs:
+    envflag.enable: "true"
+    envflag.prefix: VM_
+    loggerFormat: json
+    dedup.minScrapeInterval: 30s
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    servicePort: 8428
+  
+  # Ingress (disabled by default, enable if needed)
+  ingress:
+    enabled: false
+    # hosts:
+    #   - name: vm.example.com
+    #     path: /
+  
+  # Scrape configs - VM can scrape directly but we'll use vmagent/prometheus
+  scrape:
+    enabled: false
+
+# ServiceMonitor for self-monitoring
+serviceMonitor:
+  enabled: true
+  extraLabels:
+    release: prometheus
+

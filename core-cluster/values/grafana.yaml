@@ -1,0 +1,168 @@
+# Grafana - Visualization and dashboards
+
+# Replica count
+replicas: 1
+
+# Resource configuration
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Persistence
+persistence:
+  enabled: true
+  size: 10Gi
+
+# Admin credentials - CHANGE IN PRODUCTION
+adminUser: admin
+# Use existingSecret in production
+adminPassword: admin
+
+# Service
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress (disabled by default)
+ingress:
+  enabled: false
+  # hosts:
+  #   - grafana.example.com
+  # tls:
+  #   - secretName: grafana-tls
+  #     hosts:
+  #       - grafana.example.com
+
+# Data sources
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      # Victoria Metrics as primary data source
+      - name: VictoriaMetrics
+        type: prometheus
+        url: http://victoria-metrics-single-server.monitoring.svc:8428
+        access: proxy
+        isDefault: true
+        jsonData:
+          timeInterval: 30s
+          httpMethod: POST
+      
+      # Prometheus data source
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server.monitoring.svc:80
+        access: proxy
+        isDefault: false
+      
+      # AlertManager data source
+      - name: AlertManager
+        type: alertmanager
+        url: http://alertmanager.monitoring.svc:9093
+        access: proxy
+        jsonData:
+          implementation: prometheus
+
+# Dashboard providers
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+      - name: 'kubernetes'
+        orgId: 1
+        folder: 'Kubernetes'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/kubernetes
+      - name: 'victoria-metrics'
+        orgId: 1
+        folder: 'VictoriaMetrics'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/victoria-metrics
+
+# Pre-configured dashboards from grafana.com
+dashboards:
+  kubernetes:
+    # Kubernetes cluster overview
+    kubernetes-cluster:
+      gnetId: 7249
+      revision: 1
+      datasource: VictoriaMetrics
+    # Kubernetes pod overview
+    kubernetes-pods:
+      gnetId: 6417
+      revision: 1
+      datasource: VictoriaMetrics
+    # Kubernetes deployment overview
+    kubernetes-deployments:
+      gnetId: 8588
+      revision: 1
+      datasource: VictoriaMetrics
+    # Node exporter full
+    node-exporter:
+      gnetId: 1860
+      revision: 37
+      datasource: VictoriaMetrics
+  victoria-metrics:
+    # VictoriaMetrics single node
+    vm-single:
+      gnetId: 10229
+      revision: 22
+      datasource: VictoriaMetrics
+    # VMAgent dashboard
+    vmagent:
+      gnetId: 12683
+      revision: 18
+      datasource: VictoriaMetrics
+
+# Sidecar for dynamic dashboard/datasource loading
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    searchNamespace: ALL
+  datasources:
+    enabled: true
+    label: grafana_datasource
+    labelValue: "1"
+
+# Grafana.ini configuration
+grafana.ini:
+  server:
+    root_url: "%(protocol)s://%(domain)s/"
+  analytics:
+    check_for_updates: false
+  security:
+    allow_embedding: true
+  auth.anonymous:
+    enabled: false
+  users:
+    allow_sign_up: false
+  log:
+    mode: console
+    level: info
+
+# ServiceMonitor
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+

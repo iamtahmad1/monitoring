@@ -1,0 +1,80 @@
+# Kube State Metrics - Exposes Kubernetes object state metrics
+
+# Replica count
+replicas: 1
+
+# Resource configuration
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Prometheus scrape annotations
+prometheusScrape: true
+
+# Service
+service:
+  type: ClusterIP
+  port: 8080
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+
+# Collectors - which Kubernetes resources to collect metrics for
+collectors:
+  - certificatesigningrequests
+  - configmaps
+  - cronjobs
+  - daemonsets
+  - deployments
+  - endpoints
+  - horizontalpodautoscalers
+  - ingresses
+  - jobs
+  - leases
+  - limitranges
+  - mutatingwebhookconfigurations
+  - namespaces
+  - networkpolicies
+  - nodes
+  - persistentvolumeclaims
+  - persistentvolumes
+  - poddisruptionbudgets
+  - pods
+  - replicasets
+  - replicationcontrollers
+  - resourcequotas
+  - secrets
+  - services
+  - statefulsets
+  - storageclasses
+  - validatingwebhookconfigurations
+  - volumeattachments
+
+# RBAC
+rbac:
+  create: true
+
+# Service Account
+serviceAccount:
+  create: true
+
+# Pod Security Policy (deprecated in newer K8s)
+podSecurityPolicy:
+  enabled: false
+
+# Self monitor - enable metrics endpoint
+selfMonitor:
+  enabled: true
+
+# Prometheus Operator ServiceMonitor
+prometheus:
+  monitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus
+    honorLabels: true
+
