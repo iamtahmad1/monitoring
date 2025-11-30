@@ -24,7 +24,7 @@ spec:
       targetRevision: 27.0.*
       helm:
         valueFiles:
-          - $values/values/prometheus.yaml
-    - repoURL: https://github.com/YOUR_ORG/monitoring.git
+          - $values/core-cluster/values/prometheus.yaml
+    - repoURL: https://github.com/iamtahmad1/monitoring.git
       targetRevision: HEAD
       ref: values

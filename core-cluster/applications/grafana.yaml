@@ -24,7 +24,7 @@ spec:
       targetRevision: 8.8.*
       helm:
         valueFiles:
-          - $values/values/grafana.yaml
-    - repoURL: https://github.com/YOUR_ORG/monitoring.git
+          - $values/core-cluster/values/grafana.yaml
+    - repoURL: https://github.com/iamtahmad1/monitoring.git
       targetRevision: HEAD
       ref: values
