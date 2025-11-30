@@ -15,8 +15,6 @@ resources:
 # Remote write to Core Cluster Victoria Metrics
 remoteWrite:
   - url: http://192.168.1.220/api/v1/write
-    headers:
-      - "Host: vm.dev.cluster.lan"
 
 # Extra args - add external label for cluster identification
 extraArgs:
