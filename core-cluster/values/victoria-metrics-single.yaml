@@ -25,11 +25,10 @@ server:
     loggerFormat: json
     dedup.minScrapeInterval: 30s
   
-  # Service configuration - NodePort for cross-cluster access
+  # Service configuration
   service:
-    type: NodePort
+    type: ClusterIP
     servicePort: 8428
-    nodePort: 30428
   
   # Ingress
   ingress:

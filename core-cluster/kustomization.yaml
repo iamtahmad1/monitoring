@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - victoria-metrics-nodeport.yaml
   - applications/victoria-metrics-single.yaml
   - applications/vmagent.yaml
   - applications/vmalert.yaml
