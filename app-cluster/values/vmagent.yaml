@@ -13,19 +13,19 @@ resources:
     memory: 512Mi
 
 # Remote write to Core Cluster Victoria Metrics
-# UPDATE THIS URL to match your core cluster's VM endpoint
 remoteWrite:
-  - url: http://vm.dev.cluster.lan/api/v1/write
+  - url: http://192.168.1.220/api/v1/write
+    headers:
+      Host: vm.dev.cluster.lan
 
-# Extra args
+# Extra args - add external label for cluster identification
 extraArgs:
   envflag.enable: "true"
   envflag.prefix: VM_
   loggerFormat: json
   promscrape.maxScrapeSize: "167772160"
   promscrape.streamParse: "true"
-  # Add cluster label to distinguish metrics from this cluster
-  remoteWrite.label: cluster=app-cluster
+  remoteWrite.label: "cluster=app-cluster"
 
 # Persistence for write-ahead log
 persistentVolume:
@@ -42,22 +42,19 @@ rbac:
 serviceAccount:
   create: true
 
-# Config for Kubernetes service discovery
+# Scrape config
 config:
   global:
     scrape_interval: 30s
     scrape_timeout: 10s
-    # Add external labels to identify this cluster
     external_labels:
       cluster: app-cluster
   
   scrape_configs:
-    # Scrape VMAgent itself
     - job_name: vmagent
       static_configs:
         - targets: ["localhost:8429"]
     
-    # Kubernetes API Server
     - job_name: kubernetes-apiservers
       kubernetes_sd_configs:
         - role: endpoints
@@ -71,7 +68,6 @@ config:
           action: keep
           regex: default;kubernetes;https
     
-    # Kubernetes Nodes
     - job_name: kubernetes-nodes
       kubernetes_sd_configs:
         - role: node
@@ -84,7 +80,6 @@ config:
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
     
-    # Kubernetes Nodes Cadvisor
     - job_name: kubernetes-nodes-cadvisor
       kubernetes_sd_configs:
         - role: node
@@ -99,7 +94,6 @@ config:
         - target_label: __metrics_path__
           replacement: /metrics/cadvisor
     
-    # Kubernetes Service Endpoints
     - job_name: kubernetes-service-endpoints
       kubernetes_sd_configs:
         - role: endpoints
@@ -124,15 +118,11 @@ config:
           regex: __meta_kubernetes_service_label_(.+)
         - source_labels: [__meta_kubernetes_namespace]
           action: replace
-          target_label: kubernetes_namespace
+          target_label: namespace
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
-          target_label: kubernetes_service
-        - source_labels: [__meta_kubernetes_pod_name]
-          action: replace
-          target_label: kubernetes_pod
+          target_label: service
     
-    # Kubernetes Pods
     - job_name: kubernetes-pods
       kubernetes_sd_configs:
         - role: pod
@@ -157,12 +147,10 @@ config:
           regex: __meta_kubernetes_pod_label_(.+)
         - source_labels: [__meta_kubernetes_namespace]
           action: replace
-          target_label: kubernetes_namespace
+          target_label: namespace
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
-          target_label: kubernetes_pod
+          target_label: pod
 
-# ServiceMonitor (disabled - requires Prometheus Operator CRDs)
 serviceMonitor:
   enabled: false
-

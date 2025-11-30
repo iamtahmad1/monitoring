@@ -30,10 +30,11 @@ server:
     external_labels:
       cluster: app-cluster
   
-  # Remote write to Core Cluster Victoria Metrics
-  # UPDATE THIS URL to match your core cluster's VM endpoint
+  # Remote write to Core Cluster Victoria Metrics (192.168.1.220)
   remoteWrite:
-    - url: http://vm.dev.cluster.lan/api/v1/write
+    - url: http://192.168.1.220/api/v1/write
+      headers:
+        Host: vm.dev.cluster.lan
       queue_config:
         max_samples_per_send: 10000
         batch_send_deadline: 5s
