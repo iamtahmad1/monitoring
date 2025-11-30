@@ -155,9 +155,7 @@ config:
           action: replace
           target_label: kubernetes_pod
 
-# ServiceMonitor for self-monitoring
+# ServiceMonitor (disabled - requires Prometheus Operator CRDs)
 serviceMonitor:
-  enabled: true
-  extraLabels:
-    release: prometheus
+  enabled: false
 

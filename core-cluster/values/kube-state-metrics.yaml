@@ -70,11 +70,8 @@ podSecurityPolicy:
 selfMonitor:
   enabled: true
 
-# Prometheus Operator ServiceMonitor
+# Prometheus Operator ServiceMonitor (disabled - requires Prometheus Operator CRDs)
 prometheus:
   monitor:
-    enabled: true
-    additionalLabels:
-      release: prometheus
-    honorLabels: true
+    enabled: false
 
